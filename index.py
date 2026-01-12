@@ -178,8 +178,8 @@ selected_category = st.sidebar.selectbox("選擇報考類組", unique_categories
 st.sidebar.subheader("個人數據輸入")
 default_score = 45 if "資訊" in selected_category else 0.0
 default_quota = 35 if "資訊" in selected_category else 10
-my_written_score = st.sidebar.number_input("您的筆試加權成績", value=default_score, step=0.1, format="%.2f")
-total_quota = st.sidebar.number_input("該類組正取名額", value=default_quota, step=1)
+my_written_score = st.sidebar.number_input("您的筆試加權成績", value=float(default_score), step=0.1, format="%.2f")
+total_quota = st.sidebar.number_input("該類組正取名額", value=int(default_quota), step=1)
 
 is_already_in_list = st.sidebar.checkbox("我的成績已包含在清單中", value=False, help="系統將自動排除一筆與您同分的資料。")
 
