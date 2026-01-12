@@ -135,7 +135,7 @@ with st.sidebar.expander("資料來源設定", expanded=not final_url):
         placeholder_text = "請貼上 Google Sheet 網址..."
         
     user_url_input = st.text_input("輸入網址", placeholder=placeholder_text, label_visibility="collapsed")
-    st.caption("💡 資料每 10 分鐘自動更新一次。")
+    st.caption("資料每 10 分鐘自動更新一次。")
 
 if user_url_input:
     new_id = extract_sheet_id(user_url_input)
@@ -152,9 +152,9 @@ if user_url_input:
         st.sidebar.error("網址格式錯誤")
 
 if not final_url:
-    st.title("📊 114 國營甄試落點分析")
-    st.warning("⚠️ 尚未設定資料來源")
-    st.markdown("### 🚀 快速開始：")
+    st.title("114 國營甄試落點分析")
+    st.warning("尚未設定資料來源")
+    st.markdown("### 快速開始：")
     st.markdown("""
     1. **複製** 您該類組的 Google Sheet 成績表單網址。
     2. **貼上** 到左側選單的輸入框。
