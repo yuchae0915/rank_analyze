@@ -9,6 +9,28 @@ import random
 from datetime import datetime, timedelta
 import plotly.express as px
 
+# 定義 CSS 樣式
+hide_icons_css = """
+    <style>
+    /* 1. 隱藏 "View on GitHub", "Star", "Edit" 等圖示的容器 */
+    [data-testid="stHeaderActionElements"] {
+        display: none !important;
+    }
+    
+    /* 2. 隱藏 "Share" 按鈕 (有時候它是獨立的元件) */
+    .stDeployButton {
+        display: none !important;
+    }
+    
+    /* 3. 確保最右邊的 "三點選單" (MainMenu) 依然顯示 */
+    [data-testid="stMainMenu"] {
+        display: inline-block !important;
+    }
+    </style>
+"""
+
+# 注入 CSS
+st.markdown(hide_icons_css, unsafe_allow_html=True)
 # ================= 基礎設定 =================
 HISTORY_FILE = 'rank_history.json' 
 SYSTEM_COLS = ['score', 'dt', 'category', 'threshold_raw', 'threshold_val', 'threshold_col_name', 'Group', 'jitter_y']
