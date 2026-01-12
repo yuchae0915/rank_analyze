@@ -6,16 +6,15 @@ import re
 import os
 import json
 import random
-from datetime import datetime, timedelta # [新增] timedelta
+from datetime import datetime, timedelta
 import plotly.express as px
 
 # ================= 基礎設定 =================
 HISTORY_FILE = 'rank_history.json' 
 SYSTEM_COLS = ['score', 'dt', 'category', 'threshold_raw', 'threshold_val', 'threshold_col_name', 'Group', 'jitter_y']
+MERGE_WINDOW_SECONDS = 600 
 
-# [新增] 定義合併時間視窗 (秒)，在此時間內的連續操作會被覆蓋，不會產生新點
-MERGE_WINDOW_SECONDS = 120 
-
+# [修改] 移除標題中的圖標
 st.set_page_config(page_title="114國營甄試 - 落點分析系統", layout="wide")
 
 # --- 核心函式 ---
@@ -68,9 +67,6 @@ def load_history():
     return []
 
 def save_history(history):
-    """
-    [修改] 這裡只負責單純寫入，邏輯判斷移到主程式
-    """
     with open(HISTORY_FILE, 'w', encoding='utf-8') as f:
         json.dump(history[-1000:], f, ensure_ascii=False, indent=2)
 
@@ -135,6 +131,7 @@ with st.sidebar.expander("資料來源設定", expanded=not final_url):
         placeholder_text = "請貼上 Google Sheet 網址..."
         
     user_url_input = st.text_input("輸入網址", placeholder=placeholder_text, label_visibility="collapsed")
+    # [修改] 移除圖標
     st.caption("資料每 10 分鐘自動更新一次。")
 
 if user_url_input:
@@ -144,16 +141,22 @@ if user_url_input:
         final_url = build_csv_link(new_id, new_gid)
         st.query_params["id"] = new_id
         st.query_params["gid"] = new_gid
+        # [修改] 移除圖標
         st.sidebar.success("解析成功！")
         st.sidebar.markdown("---")
         st.sidebar.subheader("分享此設定")
-        st.sidebar.info("💡 **請直接複製瀏覽器上方的網址分享**，該網址已包含設定參數。")
+        # [修改] 移除圖標
+        st.sidebar.info("**請直接複製瀏覽器上方的網址分享**，該網址已包含設定參數。")
     else:
+        # [修改] 移除圖標
         st.sidebar.error("網址格式錯誤")
 
 if not final_url:
-    st.title("114 國營甄試落點分析")
+    # [修改] 移除標題圖標
+    st.title("114 國營甄試 - 落點分析")
+    # [修改] 移除警告圖標
     st.warning("尚未設定資料來源")
+    # [修改] 移除圖標
     st.markdown("### 快速開始：")
     st.markdown("""
     1. **複製** 您該類組的 Google Sheet 成績表單網址。
@@ -176,12 +179,14 @@ for i, cat in enumerate(unique_categories):
 selected_category = st.sidebar.selectbox("選擇報考類組", unique_categories, index=default_index)
 
 st.sidebar.subheader("個人數據輸入")
-default_score = 45 if "資訊" in selected_category else 0.0
+default_score = 57.4 if "資訊" in selected_category else 0.0
 default_quota = 35 if "資訊" in selected_category else 10
+
 my_written_score = st.sidebar.number_input("您的筆試加權成績", value=float(default_score), step=0.1, format="%.2f")
 total_quota = st.sidebar.number_input("該類組正取名額", value=int(default_quota), step=1)
 
-is_already_in_list = st.sidebar.checkbox("我的成績已包含在清單中", value=False, help="系統將自動排除一筆與您同分的資料。")
+# [修改] 移除 help 圖標提示
+is_already_in_list = st.sidebar.checkbox("我的成績已包含在清單中", value=False)
 
 with st.sidebar.expander("進階模型參數"):
     my_interview_worst = st.number_input("我方口試保守預估", value=60.0)
@@ -228,10 +233,10 @@ if not df.empty:
     worst_rank = sum(s > safe_line for s in competitors) + 1
     sample_size = len(competitors)
     
-    # [修改] 歷史紀錄邏輯 - 時間視窗合併
+    # 歷史紀錄邏輯 - 時間視窗合併
     history = load_history()
     now = datetime.now()
-    now_str = now.strftime("%m/%d %H:%M") # 用於顯示的字串
+    now_str = now.strftime("%m/%d %H:%M")
     
     save_needed = False
     
@@ -250,40 +255,30 @@ if not df.empty:
         else:
             last_rec = history[-1]
             
-            # 1. 檢查是否同類組
             if last_rec.get('category') == selected_category:
-                # 2. 檢查時間差 (解析上一筆時間)
                 try:
-                    # 這裡將字串轉回 datetime，注意年份會預設為 1900，所以我們把現在時間也轉成 1900 來比較
                     last_time_struct = datetime.strptime(last_rec['time'], "%m/%d %H:%M")
                     current_time_struct = datetime.strptime(now_str, "%m/%d %H:%M")
-                    
-                    # 計算秒數差
                     diff_seconds = (current_time_struct - last_time_struct).total_seconds()
                     
-                    # [關鍵] 若在時間視窗內 (例如 10 分鐘)
                     if abs(diff_seconds) < MERGE_WINDOW_SECONDS:
-                        # 覆蓋上一筆 (Update)
                         history[-1] = new_record
                         save_history(history)
                     else:
-                        # 超過時間，新增一筆 (Append)
-                        # 只有當數據有變化時才存，避免長時間掛機產生大量重複數據
                         if (raw_rank != last_rec['raw_rank'] or 
                             worst_rank != last_rec['worst_rank'] or 
                             sample_size != last_rec['sample_size']):
                             history.append(new_record)
                             save_history(history)
                 except:
-                    # 如果時間解析失敗，就直接存新的
                     history.append(new_record)
                     save_history(history)
             else:
-                # 不同類組，直接存新的
                 history.append(new_record)
                 save_history(history)
 
     # UI 顯示
+    # [修改] 移除標題圖標
     st.title(f"{selected_category} - 落點分析報告")
     
     st.info(f"系統公告：已自動偵測複試門檻為 **{pass_threshold}** 分。系統已自動剔除無效樣本。")
@@ -291,19 +286,97 @@ if not df.empty:
 
     st.markdown("### 關鍵指標")
     c1, c2, c3, c4 = st.columns(4)
+    # [修改] 移除 help 圖標提示
     c1.metric("目前筆試排名", f"No. {raw_rank}")
-    c2.metric("最差模擬排名", f"No. {worst_rank}", help="保守估計排名")
+    c2.metric("最差模擬排名", f"No. {worst_rank}")
     c3.metric("安全分界值", f"{safe_line:.2f} 分")
-    
-    sample_help = "已排除您自身資料 (參賽者模式)" if is_already_in_list else "包含所有填表資料 (觀察者模式)"
-    c4.metric("有效競爭者 / 總額", f"{sample_size} / {total_quota}", help=sample_help)
+    c4.metric("有效競爭者 / 總額", f"{sample_size} / {total_quota}")
 
+    # [修改] 移除狀態訊息中的圖標
     if worst_rank <= total_quota:
         st.success(f"**[極度安全]** 模擬最差排名 ({worst_rank}) 仍在正取 ({total_quota}) 內。")
     elif raw_rank <= total_quota:
         st.warning(f"**[需謹慎]** 目前在正取內，但有 {worst_rank - raw_rank} 位對手在射程範圍。")
     else:
         st.error(f"**[危險]** 目前排名在正取外，需靠口試高分逆轉。")
+
+    st.divider()
+
+    # [新的] 競爭與逆轉分析 (移除圖標版)
+    st.subheader("競爭與逆轉分析")
+    
+    # === 情境 A：我在正取名單內 (防守模式) ===
+    if raw_rank <= total_quota:
+        # [修改] 移除圖標
+        st.success(f"目前排名 **No.{raw_rank}** (正取 {total_quota})，處於安全名單內！")
+        
+        threats = df[(df['score'] > safe_line) & (df['score'] < my_written_score)].copy()
+        
+        if not threats.empty:
+            # [修改] 移除圖標
+            st.markdown("##### 需警戒的後方對手")
+            st.caption("這些對手筆試輸您，但若口試表現優異，可能總分會超越您。")
+            
+            threats['筆試落後'] = (my_written_score - threats['score']).round(2)
+            threats['口試需贏我'] = (threats['筆試落後'] * (weight_written / weight_interview)).round(2)
+            
+            display_cols = ['加權成績', '筆試落後', '口試需贏我']
+            st.dataframe(threats[display_cols].sort_values('加權成績', ascending=False).reset_index(drop=True), use_container_width=True)
+        else:
+            # [修改] 移除圖標
+            st.markdown("##### 防守狀況：極度安全")
+            st.info("目前後方無人在「射程範圍」內。除非您口試失常（低於 60）且對手滿分， otherwise 您幾乎確定上榜。")
+
+    # === 情境 B：我在正取名單外 (進攻模式) ===
+    else:
+        diff_rank = raw_rank - total_quota
+        # [修改] 移除圖標
+        st.error(f"目前排名 **No.{raw_rank}** (正取 {total_quota})，暫時落後 **{diff_rank}** 名。")
+        
+        if len(competitors) >= total_quota:
+            cutoff_score = competitors[total_quota - 1]
+        else:
+            cutoff_score = competitors[-1]
+            
+        targets = df[(df['score'] > my_written_score) & (df['score'] >= cutoff_score)].copy()
+        
+        if not targets.empty:
+            # [修改] 移除圖標
+            st.markdown("##### 逆轉勝策略分析")
+            st.caption(f"筆試輸 1 分，口試需贏 4 分。以下是您必須擊敗的對手門檻：")
+            
+            targets['筆試領先'] = (targets['score'] - my_written_score).round(2)
+            targets['口試需贏'] = (targets['筆試領先'] * (weight_written / weight_interview)).round(2)
+            
+            # [修改] 將圖標改為純文字
+            def judge_difficulty(lead_needed):
+                if lead_needed <= 5: return "[易] (贏 5 分內)"
+                if lead_needed <= 10: return "[中] (贏 5-10 分)"
+                if lead_needed <= 15: return "[難] (贏 10-15 分)"
+                return "[極難] (需贏 >15 分)"
+
+            targets['逆轉難度'] = targets['口試需贏'].apply(judge_difficulty)
+            
+            display_cols = ['加權成績', '筆試領先', '口試需贏', '逆轉難度']
+            display_targets = targets[display_cols].sort_values('加權成績', ascending=True).head(10).reset_index(drop=True)
+            
+            st.dataframe(display_targets, use_container_width=True)
+            
+            min_catchup = display_targets.iloc[0]['口試需贏']
+            
+            # [修改] 移除圖標
+            st.markdown(f"""
+            **分析結論：**
+            * 您至少需要追過 **{diff_rank}** 個人才能擠進正取。
+            * 距離您最近的對手（正取尾），筆試贏您 `{display_targets.iloc[0]['筆試領先']}` 分。
+            * **您的口試成績必須比對方高出 `{min_catchup}` 分** 才能逆轉勝。
+            """)
+            
+            if min_catchup > 20:
+                # [修改] 移除圖標
+                st.warning("逆轉所需的口試分差超過 20 分，翻盤難度極高，需祈禱對手口試嚴重失常。")
+        else:
+            st.info("前方資料不足，無法計算逆轉所需分數。")
 
     st.divider()
 
@@ -359,25 +432,6 @@ if not df.empty:
         st.plotly_chart(fig, use_container_width=True)
     else:
         st.info("此類組尚無歷史紀錄。")
-
-    st.subheader("競爭區間對手分析")
-    threats = df[(df['score'] > safe_line) & (df['score'] < my_written_score)].copy()
-    if not threats.empty:
-        threats['分差'] = (my_written_score - threats['score']).round(2)
-        def get_win_strategy(row):
-            req = calc_required_interview(row['score'], my_written_score, weight_written, weight_interview)
-            if req > 100: return "無法超越"
-            if req <= 60: return "60 (及格即勝)"
-            return f"{req:.2f}"
-        threats['所需口試分數'] = threats.apply(get_win_strategy, axis=1)
-        
-        display_threats = threats[['加權成績', '分差', '所需口試分數']].sort_values('加權成績', ascending=False).reset_index(drop=True)
-        for col in ['加權成績', '分差', '所需口試分數']:
-            display_threats[col] = display_threats[col].astype(str)
-        display_threats.index += 1
-        st.dataframe(display_threats, use_container_width=True)
-    else:
-        st.info("目前無人位於競爭區間 (安全)。")
 
     with st.expander("原始資料檢視"):
         tab1, tab2 = st.tabs(["有效名單 (已過濾)", "全部資料"])
