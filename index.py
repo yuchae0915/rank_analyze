@@ -144,12 +144,12 @@ if user_url_input:
         final_url = build_csv_link(new_id, new_gid)
         st.query_params["id"] = new_id
         st.query_params["gid"] = new_gid
-        st.sidebar.success("✅ 解析成功！")
+        st.sidebar.success("解析成功！")
         st.sidebar.markdown("---")
-        st.sidebar.subheader("🔗 分享此設定")
+        st.sidebar.subheader("分享此設定")
         st.sidebar.info("💡 **請直接複製瀏覽器上方的網址分享**，該網址已包含設定參數。")
     else:
-        st.sidebar.error("❌ 網址格式錯誤")
+        st.sidebar.error("網址格式錯誤")
 
 if not final_url:
     st.title("📊 114 國營甄試落點分析")
@@ -176,7 +176,7 @@ for i, cat in enumerate(unique_categories):
 selected_category = st.sidebar.selectbox("選擇報考類組", unique_categories, index=default_index)
 
 st.sidebar.subheader("個人數據輸入")
-default_score = 57.4 if "資訊" in selected_category else 0.0
+default_score = 45 if "資訊" in selected_category else 0.0
 default_quota = 35 if "資訊" in selected_category else 10
 my_written_score = st.sidebar.number_input("您的筆試加權成績", value=default_score, step=0.1, format="%.2f")
 total_quota = st.sidebar.number_input("該類組正取名額", value=default_quota, step=1)
