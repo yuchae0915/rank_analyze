@@ -9,28 +9,44 @@ import random
 from datetime import datetime, timedelta
 import plotly.express as px
 
-# 定義 CSS 樣式
-hide_icons_css = """
+hide_layout_css = """
     <style>
-    /* 1. 隱藏 "View on GitHub", "Star", "Edit" 等圖示的容器 */
+    /* 1. 針對您找到的 stToolbarActions 以及 header 動作區塊 */
+    /* 改用 visibility: hidden (隱形)，而不是 display: none (移除) */
+    /* 這樣版面結構會保留，側邊欄就不會受影響 */
+    
     [data-testid="stHeaderActionElements"] {
-        display: none !important;
+        visibility: hidden !important;
     }
     
-    /* 2. 隱藏 "Share" 按鈕 (有時候它是獨立的元件) */
-    .stDeployButton {
-        display: none !important;
+    /* 針對特定 class 再次補強隱形 */
+    .stToolbarActions {
+        visibility: hidden !important;
     }
     
-    /* 3. 確保最右邊的 "三點選單" (MainMenu) 依然顯示 */
+    /* 隱藏部署(Share)按鈕 */
+    .stDeployButton, [data-testid="stDeployButton"] {
+        visibility: hidden !important;
+    }
+
+    /* 2. 【關鍵】把最右邊的三個點 (MainMenu) 救回來 */
+    /* 在父層隱形的情況下，子層設定 visible 是可以獨立顯示的 */
     [data-testid="stMainMenu"] {
-        display: inline-block !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        display: block !important;
+    }
+    
+    /* 3. 如果您還想隱藏頂部彩色的裝飾條 (可選，若影響側邊欄可刪除此段) */
+    [data-testid="stDecoration"] {
+        visibility: hidden !important;
     }
     </style>
 """
 
 # 注入 CSS
-st.markdown(hide_icons_css, unsafe_allow_html=True)
+st.markdown(hide_layout_css, unsafe_allow_html=True)
+
 # ================= 基礎設定 =================
 HISTORY_FILE = 'rank_history.json' 
 SYSTEM_COLS = ['score', 'dt', 'category', 'threshold_raw', 'threshold_val', 'threshold_col_name', 'Group', 'jitter_y']
