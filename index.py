@@ -12,7 +12,7 @@ import plotly.express as px
 # ================= 基礎設定 =================
 HISTORY_FILE = 'rank_history.json' 
 SYSTEM_COLS = ['score', 'dt', 'category', 'threshold_raw', 'threshold_val', 'threshold_col_name', 'Group', 'jitter_y']
-MERGE_WINDOW_SECONDS = 600 
+MERGE_WINDOW_SECONDS = 120 
 
 # [修改] 移除標題中的圖標
 st.set_page_config(page_title="114國營甄試 - 落點分析系統", layout="wide")
@@ -131,7 +131,6 @@ with st.sidebar.expander("資料來源設定", expanded=not final_url):
         placeholder_text = "請貼上 Google Sheet 網址..."
         
     user_url_input = st.text_input("輸入網址", placeholder=placeholder_text, label_visibility="collapsed")
-    # [修改] 移除圖標
     st.caption("資料每 10 分鐘自動更新一次。")
 
 if user_url_input:
@@ -141,22 +140,16 @@ if user_url_input:
         final_url = build_csv_link(new_id, new_gid)
         st.query_params["id"] = new_id
         st.query_params["gid"] = new_gid
-        # [修改] 移除圖標
         st.sidebar.success("解析成功！")
         st.sidebar.markdown("---")
         st.sidebar.subheader("分享此設定")
-        # [修改] 移除圖標
         st.sidebar.info("**請直接複製瀏覽器上方的網址分享**，該網址已包含設定參數。")
     else:
-        # [修改] 移除圖標
         st.sidebar.error("網址格式錯誤")
 
 if not final_url:
-    # [修改] 移除標題圖標
     st.title("114 國營甄試 - 落點分析")
-    # [修改] 移除警告圖標
     st.warning("尚未設定資料來源")
-    # [修改] 移除圖標
     st.markdown("### 快速開始：")
     st.markdown("""
     1. **複製** 您該類組的 Google Sheet 成績表單網址。
@@ -185,7 +178,6 @@ default_quota = 35 if "資訊" in selected_category else 10
 my_written_score = st.sidebar.number_input("您的筆試加權成績", value=float(default_score), step=0.1, format="%.2f")
 total_quota = st.sidebar.number_input("該類組正取名額", value=int(default_quota), step=1)
 
-# [修改] 移除 help 圖標提示
 is_already_in_list = st.sidebar.checkbox("我的成績已包含在清單中", value=False)
 
 with st.sidebar.expander("進階模型參數"):
@@ -307,13 +299,11 @@ if not df.empty:
     
     # === 情境 A：我在正取名單內 (防守模式) ===
     if raw_rank <= total_quota:
-        # [修改] 移除圖標
         st.success(f"目前排名 **No.{raw_rank}** (正取 {total_quota})，處於安全名單內！")
         
         threats = df[(df['score'] > safe_line) & (df['score'] < my_written_score)].copy()
         
         if not threats.empty:
-            # [修改] 移除圖標
             st.markdown("##### 需警戒的後方對手")
             st.caption("這些對手筆試輸您，但若口試表現優異，可能總分會超越您。")
             
@@ -323,14 +313,12 @@ if not df.empty:
             display_cols = ['加權成績', '筆試落後', '口試需贏我']
             st.dataframe(threats[display_cols].sort_values('加權成績', ascending=False).reset_index(drop=True), use_container_width=True)
         else:
-            # [修改] 移除圖標
             st.markdown("##### 防守狀況：極度安全")
             st.info("目前後方無人在「射程範圍」內。除非您口試失常（低於 60）且對手滿分， otherwise 您幾乎確定上榜。")
 
     # === 情境 B：我在正取名單外 (進攻模式) ===
     else:
         diff_rank = raw_rank - total_quota
-        # [修改] 移除圖標
         st.error(f"目前排名 **No.{raw_rank}** (正取 {total_quota})，暫時落後 **{diff_rank}** 名。")
         
         if len(competitors) >= total_quota:
@@ -341,14 +329,12 @@ if not df.empty:
         targets = df[(df['score'] > my_written_score) & (df['score'] >= cutoff_score)].copy()
         
         if not targets.empty:
-            # [修改] 移除圖標
             st.markdown("##### 逆轉勝策略分析")
             st.caption(f"筆試輸 1 分，口試需贏 4 分。以下是您必須擊敗的對手門檻：")
             
             targets['筆試領先'] = (targets['score'] - my_written_score).round(2)
             targets['口試需贏'] = (targets['筆試領先'] * (weight_written / weight_interview)).round(2)
             
-            # [修改] 將圖標改為純文字
             def judge_difficulty(lead_needed):
                 if lead_needed <= 5: return "[易] (贏 5 分內)"
                 if lead_needed <= 10: return "[中] (贏 5-10 分)"
@@ -364,7 +350,6 @@ if not df.empty:
             
             min_catchup = display_targets.iloc[0]['口試需贏']
             
-            # [修改] 移除圖標
             st.markdown(f"""
             **分析結論：**
             * 您至少需要追過 **{diff_rank}** 個人才能擠進正取。
@@ -373,7 +358,6 @@ if not df.empty:
             """)
             
             if min_catchup > 20:
-                # [修改] 移除圖標
                 st.warning("逆轉所需的口試分差超過 20 分，翻盤難度極高，需祈禱對手口試嚴重失常。")
         else:
             st.info("前方資料不足，無法計算逆轉所需分數。")
